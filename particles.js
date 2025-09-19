@@ -203,4 +203,124 @@ class FloatingSymbols {
 // Initialize floating symbols
 document.addEventListener('DOMContentLoaded', () => {
   new FloatingSymbols();
+  new CardRandomizer();
 });
+
+// Card Randomizer for floating cards
+class CardRandomizer {
+  constructor() {
+    this.cards = document.querySelectorAll('.card');
+    this.container = document.querySelector('.container');
+    this.positions = [];
+    this.init();
+  }
+
+  init() {
+    this.generateRandomPositions();
+    this.positionCards();
+    this.addDragFunctionality();
+  }
+
+  generateRandomPositions() {
+    const containerRect = this.container.getBoundingClientRect();
+    const cardWidth = 300;
+    const cardHeight = 200;
+    const padding = 20;
+    
+    for (let i = 0; i < this.cards.length; i++) {
+      let attempts = 0;
+      let position;
+      
+      do {
+        position = {
+          x: Math.random() * (containerRect.width - cardWidth - padding * 2) + padding,
+          y: Math.random() * (containerRect.height - cardHeight - padding * 2) + padding,
+          rotation: (Math.random() - 0.5) * 10, // Random rotation between -5 and 5 degrees
+          scale: 0.8 + Math.random() * 0.4 // Random scale between 0.8 and 1.2
+        };
+        attempts++;
+      } while (this.checkOverlap(position, i) && attempts < 50);
+      
+      this.positions.push(position);
+    }
+  }
+
+  checkOverlap(newPos, currentIndex) {
+    const minDistance = 150; // Minimum distance between cards
+    
+    for (let i = 0; i < currentIndex; i++) {
+      const existingPos = this.positions[i];
+      const distance = Math.sqrt(
+        Math.pow(newPos.x - existingPos.x, 2) + 
+        Math.pow(newPos.y - existingPos.y, 2)
+      );
+      
+      if (distance < minDistance) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  positionCards() {
+    this.cards.forEach((card, index) => {
+      const pos = this.positions[index];
+      card.style.left = pos.x + 'px';
+      card.style.top = pos.y + 'px';
+      card.style.transform = `rotate(${pos.rotation}deg) scale(${pos.scale})`;
+      card.style.transition = 'all 0.5s ease-out';
+      
+      // Add random animation delay and trigger animation
+      setTimeout(() => {
+        card.classList.add('animated');
+      }, index * 200);
+    });
+  }
+
+  addDragFunctionality() {
+    this.cards.forEach(card => {
+      let isDragging = false;
+      let startX, startY, initialX, initialY;
+
+      card.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        card.style.zIndex = '10';
+        card.style.cursor = 'grabbing';
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        const rect = card.getBoundingClientRect();
+        initialX = rect.left;
+        initialY = rect.top;
+        
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        
+        card.style.left = (initialX + deltaX) + 'px';
+        card.style.top = (initialY + deltaY) + 'px';
+        card.style.transform = card.style.transform.replace(/translate\([^)]*\)/, '') + ' translate(0, 0)';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          card.style.zIndex = '1';
+          card.style.cursor = 'move';
+        }
+      });
+    });
+  }
+
+  // Method to reshuffle cards
+  reshuffle() {
+    this.generateRandomPositions();
+    this.positionCards();
+  }
+}
